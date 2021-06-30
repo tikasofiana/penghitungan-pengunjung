@@ -1,5 +1,4 @@
-##Contador de personas
-##Federico Mejia
+##Pendeteksi orang
 ##from picamera.array import PiRGBArray
 ##from picamera import PiCamera
 import numpy as np
@@ -10,13 +9,13 @@ import time
 try:
     log = open('log.txt',"w")
 except:
-    print( "No se puede abrir el archivo log")
+    print( "Tidak dapat membuka file log")
 
-#Contadores de entrada y salida
+#Entry and exit counters
 cnt_up   = 0
 cnt_down = 0
 
-#Fuente de video
+#Video source
 #cap = cv.VideoCapture(0)
 cap = cv.VideoCapture('Test Files/3401.avi')
 #camera = PiCamera()
@@ -25,11 +24,11 @@ cap = cv.VideoCapture('Test Files/3401.avi')
 ##rawCapture = PiRGBArray(camera, size=(160,120))
 ##time.sleep(0.1)
 
-#Propiedades del video
+#Video Properties
 ##cap.set(3,160) #Width
 ##cap.set(4,120) #Height
 
-#Imprime las propiedades de captura a consola
+#Print the capture properties to console
 for i in range(19):
     print( i, cap.get(i))
 
@@ -39,7 +38,7 @@ frameArea = h*w
 areaTH = frameArea/250
 print( 'Area Threshold', areaTH)
 
-#Lineas de entrada/salida
+#Entry / exit lines
 line_up = int(2*(h/5))
 line_down   = int(3*(h/5))
 
@@ -68,10 +67,10 @@ pt8 =  [w, down_limit];
 pts_L4 = np.array([pt7,pt8], np.int32)
 pts_L4 = pts_L4.reshape((-1,1,2))
 
-#Substractor de fondo
+#Background subtractor
 fgbg = cv.createBackgroundSubtractorMOG2(detectShadows = True)
 
-#Elementos estructurantes para filtros morfoogicos
+#Structuring elements for morphogic filters
 kernelOp = np.ones((3,3),np.uint8)
 kernelOp2 = np.ones((5,5),np.uint8)
 kernelCl = np.ones((11,11),np.uint8)
@@ -84,28 +83,28 @@ pid = 1
 
 while(cap.isOpened()):
 ##for image in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-    #Lee una imagen de la fuente de video
+    #Read an image from the video source
     ret, frame = cap.read()
 ##    frame = image.array
 
     for i in persons:
         i.age_one() #age every person one frame
     #########################
-    #   PRE-PROCESAMIENTO   #
+    #   PRE-PROCESSING      #
     #########################
     
-    #Aplica substraccion de fondo
+    #Apply background subtraction
     fgmask = fgbg.apply(frame)
     fgmask2 = fgbg.apply(frame)
 
-    #Binariazcion para eliminar sombras (color gris)
+    #Binary to remove shadows (gray color)
     try:
         ret,imBin= cv.threshold(fgmask,200,255,cv.THRESH_BINARY)
         ret,imBin2 = cv.threshold(fgmask2,200,255,cv.THRESH_BINARY)
-        #Opening (erode->dilate) para quitar ruido.
+        #Opening (erode-> dilate) to remove noise.
         mask = cv.morphologyEx(imBin, cv.MORPH_OPEN, kernelOp)
         mask2 = cv.morphologyEx(imBin2, cv.MORPH_OPEN, kernelOp)
-        #Closing (dilate -> erode) para juntar regiones blancas.
+        #Closing (dilate -> erode) to join white regions.
         mask =  cv.morphologyEx(mask , cv.MORPH_CLOSE, kernelCl)
         mask2 = cv.morphologyEx(mask2, cv.MORPH_CLOSE, kernelCl)
     except:
@@ -114,7 +113,7 @@ while(cap.isOpened()):
         print ('Masuk:',cnt_down)
         break
     #################
-    #   CONTORNOS   #
+    #   CONTOURS   #
     #################
     
     # RETR_EXTERNAL returns only extreme outer flags. All child contours are left behind.
@@ -126,7 +125,7 @@ while(cap.isOpened()):
             #   TRACKING    #
             #################
             
-            #Falta agregar condiciones para multipersonas, salidas y entradas de pantalla.
+            #Adding conditions for multi-people, screen outputs and inputs are missing.
             
             M = cv.moments(cnt)
             cx = int(M['m10']/M['m00'])
@@ -137,9 +136,9 @@ while(cap.isOpened()):
             if cy in range(up_limit,down_limit):
                 for i in persons:
                     if abs(x-i.getX()) <= w and abs(y-i.getY()) <= h:
-                        # el objeto esta cerca de uno que ya se detecto antes
+                        # the object is close to one that has already been detected before
                         new = False
-                        i.updateCoords(cx,cy)   #actualiza coordenadas en el objeto and resets age
+                        i.updateCoords(cx,cy)   #updates coordinates in object and resets age
                         if i.going_UP(line_down,line_up) == True:
                             cnt_up += 1;
                             print( "ID:",i.getId(),'crossed going up at',time.strftime("%c"))
@@ -155,16 +154,16 @@ while(cap.isOpened()):
                         elif i.getDir() == 'up' and i.getY() < up_limit:
                             i.setDone()
                     if i.timedOut():
-                        #sacar i de la lista persons
+                        #remove i from persons list
                         index = persons.index(i)
                         persons.pop(index)
-                        del i     #liberar la memoria de i
+                        del i     #free up i memory
                 if new == True:
                     p = Person.MyPerson(pid,cx,cy, max_p_age)
                     persons.append(p)
                     pid += 1     
             #################
-            #   DIBUJOS     #
+            #   DRAWINGS    #
             #################
             cv.circle(frame,(cx,cy), 5, (0,0,255), -1)
             img = cv.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)            
@@ -173,7 +172,7 @@ while(cap.isOpened()):
     #END for cnt in contours0
             
     #########################
-    # DIBUJAR TRAYECTORIAS  #
+    # DRAWING TRACKS        #
     #########################
     for i in persons:
 ##        if len(i.getTracks()) >= 2:
@@ -203,14 +202,14 @@ while(cap.isOpened()):
     
 
 ##    rawCapture.truncate(0)
-    #preisonar ESC para salir
+    #press ESC to exit
     k = cv.waitKey(30) & 0xff
     if k == 27:
         break
 #END while(cap.isOpened())
     
 #################
-#   LIMPIEZA    #
+#   CLEANING    #
 #################
 log.flush()
 log.close()
